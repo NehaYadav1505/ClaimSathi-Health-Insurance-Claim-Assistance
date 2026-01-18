@@ -1,0 +1,18 @@
+# ===== Common =====
+node_modules/
+.env
+.env.local
+.env.production
+.vscode/
+.DS_Store
+
+# ===== Backend =====
+backend/node_modules/
+backend/dist/
+backend/build/
+
+# ===== Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
