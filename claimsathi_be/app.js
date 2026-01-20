@@ -4,6 +4,8 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var mongoose = require("mongoose");
+var cors = require("cors");
+
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
@@ -14,7 +16,7 @@ var claimDocRouter = require("./routes/document");//document analysis
 var app = express();
 
 const uri =
-  "mongodb+srv://nehadgp03_db_user:agentic@cluster0.jnrbgyz.mongodb.net/claimsathi_db";
+  "mongodb+srv://swatiikumarii18_db_user:agentic@cluster0.50a9unb.mongodb.net/Datains";
 
 async function connectDB() {
   mongoose.connect(uri, {});
@@ -39,6 +41,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+app.use(cors({
+  origin: "http://localhost:8080",
+  credentials: true
+}));
+
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
@@ -59,6 +66,10 @@ app.use(function (err, req, res, next) {
   // render the error page
   res.status(err.status || 500);
   res.render("error");
+});
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`Backend running on port ${PORT}`);
 });
 
 module.exports = app;

@@ -21,28 +21,38 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!email || !email.includes("@")) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (!password || password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
-    setIsSubmitting(true);
+  // ✅ WORKING LOGIN HANDLER
+  const handleLoginSubmit = async () => {
     setError("");
+    setIsSubmitting(true);
 
     try {
-      // TODO: call backend login API here
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("http://localhost:5000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      // ❌ Login failed
+      if (!response.ok) {
+        setError(data.message || "Login failed");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // ✅ Login success
+      console.log("LOGIN SUCCESS:", data);
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
       navigate("/consent");
     } catch (err) {
-      setError("Login failed. Please try again.");
+      setError("Backend not reachable");
     } finally {
       setIsSubmitting(false);
     }
@@ -73,111 +83,83 @@ const Login = () => {
                   </HealthcareCardDescription>
                 </HealthcareCardHeader>
 
-                <HealthcareCardContent>
-                  <form onSubmit={handleLoginSubmit} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          <Mail className="w-5 h-5" />
-                        </div>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            setError("");
-                          }}
-                          placeholder="Enter your email"
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface-elevated border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                            error
-                              ? "border-destructive focus:ring-destructive/20"
-                              : "border-border focus:border-primary focus:ring-primary/20"
-                          }`}
-                        />
-                      </div>
+                <HealthcareCardContent className="space-y-6">
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="Enter your email"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          <Lock className="w-5 h-5" />
-                        </div>
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => {
-                            setPassword(e.target.value);
-                            setError("");
-                          }}
-                          placeholder="Enter your password"
-                          className={`w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface-elevated border transition-all duration-200 focus:outline-none focus:ring-2 ${
-                            error
-                              ? "border-destructive focus:ring-destructive/20"
-                              : "border-border focus:border-primary focus:ring-primary/20"
-                          }`}
-                        />
-                      </div>
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setError("");
+                        }}
+                        placeholder="Enter your password"
+                        className="w-full pl-12 pr-4 py-3.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
                     </div>
+                  </div>
 
-                    {error && (
-                      <motion.p
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-sm text-destructive text-center"
-                      >
-                        {error}
-                      </motion.p>
+                  {/* Error */}
+                  {error && (
+                    <p className="text-sm text-red-600 text-center">{error}</p>
+                  )}
+
+                  {/* Login Button */}
+                  <HealthcareButton
+                    type="button"
+                    className="w-full"
+                    size="lg"
+                    disabled={isSubmitting || !email || !password}
+                    onClick={handleLoginSubmit}
+                  >
+                    {isSubmitting ? (
+                      "Logging in..."
+                    ) : (
+                      <>
+                        Login <ArrowRight className="w-5 h-5" />
+                      </>
                     )}
+                  </HealthcareButton>
 
-                    <HealthcareButton
-                      type="submit"
-                      className="w-full"
-                      size="lg"
-                      disabled={isSubmitting || !email || !password}
+                  <div className="pt-4 border-t text-center text-sm text-muted-foreground flex justify-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Secure & encrypted login
+                  </div>
+
+                  <p className="text-center text-sm">
+                    Don&apos;t have an account?{" "}
+                    <Link
+                      to="/register"
+                      className="text-primary font-medium hover:underline"
                     >
-                      {isSubmitting ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 1,
-                            ease: "linear",
-                          }}
-                          className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                        />
-                      ) : (
-                        <>
-                          Login
-                          <ArrowRight className="w-5 h-5" />
-                        </>
-                      )}
-                    </HealthcareButton>
-                  </form>
-
-                  <div className="mt-8 pt-6 border-t border-border">
-                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                      <Shield className="w-4 h-4" />
-                      <span>Secure & encrypted login</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 text-center">
-                    <p className="text-muted-foreground">
-                      Don&apos;t have an account?{" "}
-                      <Link
-                        to="/register"
-                        className="text-primary font-medium hover:underline"
-                      >
-                        Register now
-                      </Link>
-                    </p>
-                  </div>
+                      Register now
+                    </Link>
+                  </p>
                 </HealthcareCardContent>
               </HealthcareCard>
             </motion.div>
