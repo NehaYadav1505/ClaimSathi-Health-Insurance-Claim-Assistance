@@ -308,7 +308,7 @@ const Landing = () => {
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
-              © 2024 HealthClaim AI. All rights reserved. Caring for your claims with compassion.
+              © 2024 ClaimSathi . All rights reserved. Caring for your claims with compassion.
             </p>
           </div>
         </div>

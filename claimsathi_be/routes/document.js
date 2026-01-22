@@ -1,14 +1,16 @@
+
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const { z } = require("zod");
 const pdfParse = require("pdf-parse-new");
 const Tesseract = require("tesseract.js");
+const { geminiModel, embeddingModel } = require("../utils/llmClient");
 
-const {
-  ChatGoogleGenerativeAI,
-  GoogleGenerativeAIEmbeddings,
-} = require("@langchain/google-genai");
+// const {
+//   ChatGoogleGenerativeAI,
+//   GoogleGenerativeAIEmbeddings,
+// } = require("@langchain/google-genai");
 
 const ClaimFile = require("../Models/document_tbl");
 
@@ -19,15 +21,15 @@ const upload = multer({
 });
 
 // ---------------- GEMINI SETUP ----------------
-const model = new ChatGoogleGenerativeAI({
-  apiKey: "AIzaSyCP5mbBWabDSCr2ipSx4emIAE3CEry_WM8",
-  model: "gemini-2.5-flash",
-});
+// const model = new ChatGoogleGenerativeAI({
+//   apiKey: "AIzaSyCP5mbBWabDSCr2ipSx4emIAE3CEry_WM8",
+//   model: "gemini-2.5-flash",
+// });
 
-const embeddings = new GoogleGenerativeAIEmbeddings({
-  apiKey: "AIzaSyCP5mbBWabDSCr2ipSx4emIAE3CEry_WM8",
-  model: "text-embedding-004",
-});
+// const embeddings = new GoogleGenerativeAIEmbeddings({
+//   apiKey: "AIzaSyCP5mbBWabDSCr2ipSx4emIAE3CEry_WM8",
+//   model: "text-embedding-004",
+// });
 
 // ---------------- AI OUTPUT SCHEMA ----------------
 const claimSchema = z.object({
@@ -82,7 +84,7 @@ router.post(
       }
 
       // 3️⃣ Gemini structured extraction
-      const structuredModel = model.withStructuredOutput(claimSchema);
+      const structuredModel = geminiModel.withStructuredOutput(claimSchema);
 
       const aiResult = await structuredModel.invoke(`
 You are a STRICT insurance claim analyst.
@@ -97,7 +99,7 @@ ${extractedText}
       `);
 
       // 4️⃣ Create vector embedding
-      const vector = await embeddings.embedQuery(extractedText);
+      const vector = await embeddingModel.embedQuery(extractedText);
 
       // 5️⃣ Save to database
       const newClaim = new ClaimFile({
@@ -127,3 +129,4 @@ ${extractedText}
 );
 
 module.exports = router;
+

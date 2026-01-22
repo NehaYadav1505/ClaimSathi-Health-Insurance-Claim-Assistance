@@ -1,3 +1,6 @@
+require("dotenv").config();
+// console.log("Gemini key loaded:", !!process.env.GEMINI_API_KEY);
+
 var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
@@ -9,7 +12,7 @@ var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 var authRouter = require("./routes/auth");//for authentication
 var claimDocRouter = require("./routes/document");//document analysis
-
+const claimRouter = require("./routes/claim");//calling agents
 
 var app = express();
 
@@ -44,6 +47,7 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/claim", claimDocRouter);
+app.use("/claim", claimRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
