@@ -33,16 +33,30 @@ async function analyzeClaim(req, res) {
       aiAnalysis.policyDetails
     );
 
-    // 4️⃣ Build claimData (derived, not stored)
-    const claimData = {
-      roomRentPerDay: 5000,        // temporary assumption
-      hospitalDays: 4,             // temporary assumption
-      billItems: [
-        { name: "Room Rent", amount: 20000 },
-        { name: "Doctor Fees", amount: 3000 },
-        { name: "Consumables", amount: 1500 }
-      ]
-    };
+    // 4️⃣ Build claimData dynamically from aiAnalysis
+const bills = aiAnalysis.hospitalBills || {};
+const billItems = bills.billItems || [];
+
+// 1. Calculate hospital days
+const admission = new Date(bills.admissionDate);
+const discharge = new Date(bills.dischargeDate);
+const hospitalDays = Math.ceil((discharge - admission) / (1000 * 60 * 60 * 24)) || 1;
+
+// 2. Calculate daily room rent
+const roomRentItem = billItems.find(i => i.name.toLowerCase().includes("room"));
+const roomRentPerDay = roomRentItem ? (roomRentItem.amount / hospitalDays) : 0;
+
+// 3. Sanitize bill amounts (remove commas/symbols)
+const sanitizedItems = billItems.map(item => ({
+  name: item.name,
+  amount: typeof item.amount === 'string' ? parseFloat(item.amount.replace(/[^0-9.]/g, '')) : item.amount
+}));
+
+const claimData = {
+  hospitalDays,
+  roomRentPerDay,
+  billItems: sanitizedItems
+};
 
     // 5️⃣ Eligibility Agent
     const eligibilityResult = eligibilityAgent(

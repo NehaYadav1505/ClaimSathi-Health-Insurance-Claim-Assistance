@@ -59,7 +59,12 @@ function eligibilityAgent(policyRules, claimData) {
     Array.isArray(claimData.billItems)
   ) {
     claimData.billItems.forEach((item) => {
-      if (policyRules.exclusions.includes(item.name)) {
+      // Use .some() and .includes() for partial matching
+      const isExcluded = policyRules.exclusions.some(ex => 
+        item.name.toLowerCase().includes(ex.toLowerCase())
+      );
+
+      if (isExcluded) {
         result.nonPayableItems.push(item);
         result.status = "PARTIALLY_ELIGIBLE";
       }

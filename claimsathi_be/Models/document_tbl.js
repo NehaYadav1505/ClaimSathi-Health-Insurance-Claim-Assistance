@@ -6,17 +6,19 @@ const claimFileSchema = new mongoose.Schema(
 
     rawText: { type: String },
 
+    // UPDATED: aiAnalysis now supports objects and arrays
     aiAnalysis: {
-      prescription: String,
-      labReports: String,
-      hospitalBills: String,
-      policyDetails: String,
-      missingInformation: String,
-    },
+  prescription: { type: String },
+  labReports: { type: String },
+  // Mixed allows for the structured object (dates + billItems array)
+  hospitalBills: { type: mongoose.Schema.Types.Mixed }, 
+  policyDetails: { type: String },
+  missingInformation: { type: String },
+},
 
     vector: {
       type: [Number],
-      index: true, // future vector search
+      index: true,
     },
   },
   { timestamps: true }

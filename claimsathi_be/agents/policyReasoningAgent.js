@@ -43,15 +43,18 @@ ${policyText}
 const response = result.content;
 
 
+ const cleanResponse = response.replace(/```json|```/g, "").trim();
+
   try {
-    return JSON.parse(response);
+    return JSON.parse(cleanResponse);
   } catch (err) {
+    console.error("JSON Parse Error:", err, "Raw Response:", response);
     return {
       coPaymentPercentage: null,
       roomRentLimitPerDay: null,
       exclusions: [],
       waitingPeriodApplicable: false,
-      notes: ["Failed to parse policy rules"]
+      notes: ["Failed to parse policy rules after cleaning"]
     };
   }
 }

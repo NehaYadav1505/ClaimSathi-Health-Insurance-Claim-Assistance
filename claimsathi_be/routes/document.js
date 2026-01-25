@@ -32,12 +32,21 @@ const upload = multer({
 // });
 
 // ---------------- AI OUTPUT SCHEMA ----------------
+const billItemSchema = z.object({
+  name: z.string(),
+  amount: z.number()
+});
+
 const claimSchema = z.object({
-  prescription: z.string().describe("Doctor prescription details"),
-  labReports: z.string().describe("Lab test details and findings"),
-  hospitalBills: z.string().describe("Hospital or OP bills and charges"),
-  policyDetails: z.string().describe("Insurance policy related information"),
-  missingInformation: z.string().describe("Anything missing or unclear"),
+  prescription: z.string(),
+  labReports: z.string(),
+  hospitalBills: z.object({
+    admissionDate: z.string().describe("YYYY-MM-DD"),
+    dischargeDate: z.string().describe("YYYY-MM-DD"),
+    billItems: z.array(billItemSchema)
+  }),
+  policyDetails: z.string(),
+  missingInformation: z.string(),
 });
 
 // ---------------- HELPER: OCR FALLBACK ----------------
@@ -87,16 +96,18 @@ router.post(
       const structuredModel = geminiModel.withStructuredOutput(claimSchema);
 
       const aiResult = await structuredModel.invoke(`
-You are a STRICT insurance claim analyst.
+  You are a medical billing specialist. Extract structured data from the provided document text.
 
-Rules:
-- Do NOT hallucinate.
-- If information is missing, say "Not found".
-- Separate prescription, lab reports, bills, and policy clearly.
+  STRICT INSTRUCTIONS:
+  1. Itemized Billing: Extract EVERY individual line item from the hospital's billing table into the 'billItems' array. 
+  2. Financial Integrity: The 'amount' for each item must be a raw number. Ensure the sum of these items matches the total mentioned on the bill.
+  3. Dates: Identify the hospital admission and discharge dates. Return them in YYYY-MM-DD format.
+  4. Policy Rules: Search for insurance policy text and extract specific limits, especially for "Room Rent," "Co-payment," and "Exclusions."
+  5. Accuracy: If a value is not explicitly stated in the text, return "Not found" for strings or null for numbers.
 
-Document text:
-${extractedText}
-      `);
+  Document text:
+  ${extractedText}
+`);
 
       // 4️⃣ Create vector embedding
       const vector = await embeddingModel.embedQuery(extractedText);

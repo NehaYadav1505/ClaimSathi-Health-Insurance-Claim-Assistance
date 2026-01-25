@@ -1,6 +1,6 @@
 require("dotenv").config();
 // console.log("Gemini key loaded:", !!process.env.GEMINI_API_KEY);
-
+var cors = require("cors");
 var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
@@ -13,9 +13,9 @@ var usersRouter = require("./routes/users");
 var authRouter = require("./routes/auth");//for authentication
 var claimDocRouter = require("./routes/document");//document analysis
 const claimRouter = require("./routes/claim");//calling agents
-
+var chatbotRouter = require("./routes/chatbot");
 var app = express();
-
+app.use(cors());
 const uri =
   "mongodb+srv://nehadgp03_db_user:agentic@cluster0.jnrbgyz.mongodb.net/claimsathi_db";
 
@@ -43,12 +43,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/claim", claimDocRouter);
 app.use("/claim", claimRouter);
-
+app.use("/api/chatbot", chatbotRouter);
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
