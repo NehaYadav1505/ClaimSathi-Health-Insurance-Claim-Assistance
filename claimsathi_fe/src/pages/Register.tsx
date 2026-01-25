@@ -28,7 +28,7 @@ const Register = () => {
       case "email":
         return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Please enter a valid email address" : "";
       case "password":
-        return value.length < 8 ? "Password must be at least 8 characters" : "";
+        return value.length < 6 ? "Password must be at least 6 characters" : "";
       default:
         return "";
     }
@@ -37,7 +37,7 @@ const Register = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -52,9 +52,12 @@ const Register = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    console.log("REGISTER SUBMITTED");
+
+
     // Validate all fields
     const newErrors: Record<string, string> = {};
     Object.entries(formData).forEach(([key, value]) => {
@@ -64,29 +67,54 @@ const Register = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setIsSubmitting(false); // 👈 ADD THIS
       return;
     }
 
+
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    // Navigate to consent page
-    navigate("/consent");
+
+    try {
+      const response = await fetch("http://localhost:5000/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.fullName,   // backend expects "name"
+          email: formData.email,
+          password: formData.password,
+          mobile: formData.mobile,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrors({ general: data.message || "Registration failed" });
+        return;
+      }
+
+      // ✅ SUCCESS → go to login page
+      navigate("/login");
+    } catch (error) {
+      setErrors({ general: "Backend not connected" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+
   const inputClasses = (hasError: boolean) =>
-    `w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface-elevated border transition-all duration-200 focus:outline-none focus:ring-2 ${
-      hasError
-        ? "border-destructive focus:ring-destructive/20"
-        : "border-border focus:border-primary focus:ring-primary/20"
+    `w-full pl-12 pr-4 py-3.5 rounded-xl bg-surface-elevated border transition-all duration-200 focus:outline-none focus:ring-2 ${hasError
+      ? "border-destructive focus:ring-destructive/20"
+      : "border-border focus:border-primary focus:ring-primary/20"
     }`;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto">
@@ -107,7 +135,8 @@ const Register = () => {
                 </HealthcareCardHeader>
 
                 <HealthcareCardContent>
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                  <form className="space-y-5">
+
                     {/* Full Name */}
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
@@ -231,13 +260,21 @@ const Register = () => {
                       )}
                     </div>
 
+                    {errors.general && (
+                      <p className="text-red-600 text-sm text-center mb-3">
+                        {errors.general}
+                      </p>
+                    )}
+
                     {/* Submit Button */}
                     <HealthcareButton
-                      type="submit"
+                      type="button"
                       className="w-full"
                       size="lg"
                       disabled={isSubmitting}
+                      onClick={handleSubmit}
                     >
+
                       {isSubmitting ? (
                         <motion.div
                           animate={{ rotate: 360 }}
