@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // Added useLocation here
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckCircle, 
@@ -90,51 +90,52 @@ const ClaimProcessing = () => {
     ]
   };
 
+ const { state } = useLocation();
+  const claimId = state?.claimId;
+
   useEffect(() => {
-    if (currentAgentIndex >= agents.length) {
-      setIsComplete(true);
-      return;
-    }
-
-    const currentAgent = agents[currentAgentIndex];
-    const messages = processingMessages[currentAgent.id as keyof typeof processingMessages];
-    let messageIndex = 0;
-
-    // Set to processing
-    setAgents(prev => prev.map((agent, idx) => 
-      idx === currentAgentIndex 
-        ? { ...agent, status: "processing", message: messages[0] }
-        : agent
-    ));
-
-    // Cycle through messages
-    const messageInterval = setInterval(() => {
-      messageIndex++;
-      if (messageIndex < messages.length) {
-        setAgents(prev => prev.map((agent, idx) => 
-          idx === currentAgentIndex 
-            ? { ...agent, message: messages[messageIndex] }
-            : agent
-        ));
+    const runAgents = async () => {
+      // 1. Safety Check: If claimId is missing, the process cannot start
+      if (!claimId) {
+        console.error("No Claim ID found! Navigation state might be empty.");
+        return;
       }
-    }, 800);
 
-    // Complete after delay
-    const completeTimeout = setTimeout(() => {
-      clearInterval(messageInterval);
-      setAgents(prev => prev.map((agent, idx) => 
-        idx === currentAgentIndex 
-          ? { ...agent, status: "complete", message: messages[messages.length - 1] }
-          : agent
-      ));
-      setCurrentAgentIndex(prev => prev + 1);
-    }, 3200);
+      try {
+        // 2. Start the UI by activating the first agent (Verification)
+        setCurrentAgentIndex(0);
 
-    return () => {
-      clearInterval(messageInterval);
-      clearTimeout(completeTimeout);
+        // 3. API CALL: Notice the "/claim" prefix added to the URL
+        const response = await fetch(`http://localhost:3000/claim/analyze/${claimId}`, {
+          method: "POST"
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          // 4. Store the real agent results in sessionStorage
+          window.sessionStorage.setItem("claimResult", JSON.stringify(data));
+          
+          // 5. Success Sequence: Animate the remaining agents
+          const interval = setInterval(() => {
+            setCurrentAgentIndex((prev) => {
+              if (prev >= agents.length - 1) {
+                clearInterval(interval);
+                setIsComplete(true); // Shows the "View Decision" button
+                return prev + 1;
+              }
+              return prev + 1;
+            });
+          }, 800);
+        } else {
+          console.error("Backend Error:", data.message);
+        }
+      } catch (error) {
+        console.error("Network/Server Error:", error);
+      }
     };
-  }, [currentAgentIndex]);
+
+    runAgents();
+  }, [claimId]);
 
   const handleViewDecision = () => {
     navigate("/claim-decision");

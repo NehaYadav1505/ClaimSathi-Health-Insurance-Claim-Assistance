@@ -11,29 +11,29 @@ router.post("/", async (req, res) => {
   const { message, language } = req.body;
 
   try {
-    // 3. Get the model
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
-      // Set the system instruction here
-      systemInstruction: `You are a health insurance claim assistant. 
-      Rules:
-      1. Reply strictly in ${language}.
-      2. Use short, concise sentences.
-      3. Always provide answers in bullet points.
-      4. Avoid long paragraphs or "fluff" text.`,
+      systemInstruction: `You are a health insurance claim assistant.
+        Rules:
+        1. Reply strictly in ${language}.
+        2. Use short, concise sentences.
+        3. Always provide plain text without markdown (*, _, etc.).
+        4. Use clear newlines for each step or sub-step.
+      `,
     });
 
-    // 4. Generate content
     const result = await model.generateContent(message);
     const response = await result.response;
-    
-    res.json({
-      reply: response.text(),
-    });
+
+    // CLEAN: remove all *, _, etc.
+    const cleanedText = response.text().replace(/[*_]/g, "").trim();
+
+    res.json({ reply: cleanedText });
   } catch (error) {
     console.error(error);
     res.status(500).json({ reply: "Chatbot service unavailable" });
   }
 });
+
 
 module.exports = router;

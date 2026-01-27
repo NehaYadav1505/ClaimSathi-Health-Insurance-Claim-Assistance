@@ -16,10 +16,12 @@ var authRouter = require("./routes/auth");//for authentication
 var claimDocRouter = require("./routes/document");//document analysis
 const claimRouter = require("./routes/claim");//calling agents
 var chatbotRouter = require("./routes/chatbot");
+const dossierRoute = require("./routes/dossier");
+
 var app = express();
 app.use(cors());
 const uri =
-  "mongodb+srv://swatiikumarii18_db_user:agentic@cluster0.50a9unb.mongodb.net/Datains";
+  "mongodb+srv://nehadgp03_db_user:agentic@cluster0.jnrbgyz.mongodb.net/claimsathi_db";
 
 async function connectDB() {
   mongoose.connect(uri, {});
@@ -57,6 +59,9 @@ app.use("/auth", authRouter);
 app.use("/claim", claimDocRouter);
 app.use("/claim", claimRouter);
 app.use("/api/chatbot", chatbotRouter);
+app.use("/", dossierRoute);
+
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
@@ -72,9 +77,9 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.render("error");
 });
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
-});
+// const PORT = 5000;
+// app.listen(PORT, () => {
+//   console.log(`Backend running on port ${PORT}`);
+// });
 
 module.exports = app;

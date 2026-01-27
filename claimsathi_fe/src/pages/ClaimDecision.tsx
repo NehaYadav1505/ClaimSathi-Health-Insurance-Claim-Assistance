@@ -22,29 +22,42 @@ const ClaimDecision = () => {
   const navigate = useNavigate();
   const [showRiskDetails, setShowRiskDetails] = useState(false);
 
-  const claimData = {
-    id: "CLM-2024-003",
-    status: "approved",
-    totalBill: 45000,
-    approvedAmount: 38500,
-    deductionAmount: 6500,
-    deductions: [
-      { item: "Room Rent Excess", amount: 3000, reason: "Policy limit: ₹3,000/day. Billed: ₹4,500/day" },
-      { item: "Non-Medical Items", amount: 2500, reason: "Toiletries, food items not covered" },
-      { item: "Admin Charges", amount: 1000, reason: "Standard co-pay as per policy" }
-    ],
+// 1. Get the real data from the previous page's work
+  const rawResult = window.sessionStorage.getItem("claimResult");
+  const result = rawResult ? JSON.parse(rawResult) : null;
+
+  // 2. Map the Agent results to your UI components
+  const claimData = result ? {
+    id: result.claimId.substring(result.claimId.length - 8).toUpperCase(),
+    status: result.eligibility?.status || "UNKNOWN",
+    totalBill: result.deductions.totalClaimed,
+    approvedAmount: result.deductions.totalPayable,
+    deductionAmount: result.deductions.totalClaimed - result.deductions.totalPayable,
+    deductions: result.deductions.deductions.map((d: any) => ({
+      item: d.item,
+      amount: d.amount,
+      reason: d.reason
+    })),
     timeline: [
-      { step: "Documents Received", time: "10:30 AM", status: "complete" },
-      { step: "Verification Complete", time: "10:32 AM", status: "complete" },
-      { step: "Eligibility Confirmed", time: "10:33 AM", status: "complete" },
-      { step: "Hospital Validated", time: "10:34 AM", status: "complete" },
-      { step: "Decision Generated", time: "10:35 AM", status: "complete" }
+      { step: "Verification Agent", time: "Complete", status: "complete" },
+      { step: "Eligibility Agent", time: "Complete", status: "complete" },
+      { step: "Deduction Agent", time: "Complete", status: "complete" },
+      { step: "Risk Assessment", time: "Complete", status: "complete" }
     ],
     riskAlert: {
-      title: "Minor Discrepancy Noted",
-      description: "Your bill mentions surgery charges (₹12,000), but the prescription only mentions medication treatment. Our team has verified this as a billing error by the hospital for 'minor procedure' charges."
+      title: `${result.riskAssessment.riskLevel} Risk Level`,
+      description: result.riskAssessment.reasons.join(". ")
     }
-  };
+  } : null;
+
+  // 3. Safety check: If for some reason there is no data
+  if (!claimData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>No claim data found. Please restart the analysis.</p>
+      </div>
+    );
+  }
 
   const handleDownloadDossier = () => {
     navigate("/claim-dossier");
@@ -72,7 +85,9 @@ const ClaimDecision = () => {
                 <CheckCircle className="w-10 h-10 text-success" />
               </motion.div>
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Claim Approved
+                {claimData.status === "ELIGIBLE"
+                  ? "Claim Approved"
+                  : "Claim Partially Approved"}
               </h1>
               <p className="text-muted-foreground">
                 Claim ID: {claimData.id}
@@ -236,12 +251,12 @@ const ClaimDecision = () => {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {index === 0 && "All 4 required documents were successfully uploaded and parsed."}
-                              {index === 1 && "Prescription details match the diagnosis mentioned in lab reports."}
-                              {index === 2 && "Treatment is covered under your policy. Room category within limits."}
-                              {index === 3 && "Apollo Hospital is a network hospital. Direct settlement available."}
-                              {index === 4 && "Based on policy terms, ₹38,500 is approved with itemized deductions."}
+                              {item.step === "Verification Agent" && result.verification?.notes?.join(" ")}
+                              {item.step === "Eligibility Agent" && result.eligibility?.warnings?.join(" ")}
+                              {item.step === "Deduction Agent" && result.deductions?.summary}
+                              {item.step === "Risk Assessment" && result.riskAssessment?.reasons?.join(" ")}
                             </p>
+
                           </div>
                         </motion.div>
                       ))}
@@ -251,11 +266,12 @@ const ClaimDecision = () => {
                     <div className="mt-8 p-4 bg-card/50 rounded-xl border border-border">
                       <h4 className="font-semibold text-foreground mb-2">Summary</h4>
                       <p className="text-sm text-muted-foreground">
-                        Your claim has been processed successfully. The deductions are primarily 
-                        due to room rent exceeding policy limits and non-medical consumables. 
-                        The approved amount of ₹38,500 will be processed for direct settlement 
-                        with Apollo Hospital within 3-5 business days.
+                        {result.deductions?.summary ||
+                          `Out of ₹${claimData.totalBill.toLocaleString()}, 
+                          payable amount is ₹${claimData.approvedAmount.toLocaleString()} 
+                          after applicable deductions.`}
                       </p>
+
                     </div>
                   </HealthcareCardContent>
                 </HealthcareCard>

@@ -18,60 +18,65 @@ import ChatBot from "@/components/chatbot/ChatBot";
 
 interface UploadedFile {
   name: string;
-  status: "uploading" | "scanning" | "complete" | "error";
+  status: "uploading" | "complete" | "error";
   extractedData?: {
-    diagnosis?: string;
-    date?: string;
-    amount?: string;
-    hospital?: string;
+    prescription?: string;
+    labReports?: string;
+    hospitalBills?: string;
+    policyDetails?: string;
+    missingInformation?: string;
   };
 }
+
 
 const NewClaim = () => {
   const navigate = useNavigate();
   // Using a record to allow multiple files in one list if needed, or just one.
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, UploadedFile>>({});
   const [voiceContext, setVoiceContext] = useState("");
-
-  const simulateUpload = async (file: File) => {
-    const fileId = Math.random().toString(36).substring(7);
-
-    // Start uploading
+  const [claimId, setClaimId] = useState<string | null>(null);
+  // NEW: Real backend call to your Upload API
+  const handleFileUpload = async (file: File) => {
+    const fileId = "doc-" + Date.now();
+    
     setUploadedFiles(prev => ({
-      ...prev,
-      [fileId]: { name: file.name, status: "uploading" }
+      ...prev, [fileId]: { name: file.name, status: "uploading" }
     }));
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const formData = new FormData();
+    formData.append("claimDocument", file); // Key must match your backend Multer setting
 
-    // Start scanning
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileId]: { ...prev[fileId], status: "scanning" }
-    }));
+    try {
+      const response = await fetch("http://localhost:3000/claim/analyze-document", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      
+      
+      if (data.success) {
+        // Store the MongoDB ID to pass to the processing page
+        setClaimId(data.claimId);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Complete with generic extracted data
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileId]: {
-        ...prev[fileId],
-        status: "complete",
-        extractedData: {
-          diagnosis: "Acute Bronchitis",
-          date: "Jan 12, 2024",
-          hospital: "City Medical Center",
-          amount: "₹45,000"
-        }
+        
+        setUploadedFiles(prev => ({
+          ...prev,
+          [fileId]: { 
+            name: file.name, 
+            status: "complete", 
+            extractedData: data.claimSummary 
+          }
+        }));
       }
-    }));
+    } catch (error) {
+      setUploadedFiles(prev => ({ ...prev, [fileId]: { ...prev[fileId], status: "error" } }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      simulateUpload(file);
+      handleFileUpload(file);
     }
   };
 
@@ -92,9 +97,13 @@ const NewClaim = () => {
     return Object.values(uploadedFiles).some(file => file.status === "complete");
   };
 
-  const handleSubmit = () => {
-    navigate("/claim-processing");
-  };
+ const handleSubmit = () => {
+   
+  if (!claimId) return;
+  navigate("/claim-processing", { state: { claimId } });
+};
+
+  
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,7 +140,7 @@ const NewClaim = () => {
                     Medical Documents
                   </HealthcareCardTitle>
                   <HealthcareCardDescription>
-                    Upload your prescription, hospital bills, or lab reports (PDF or Images)
+                    Upload your prescription, hospital bills, or lab reports (PDF)
                   </HealthcareCardDescription>
                 </HealthcareCardHeader>
 
@@ -175,7 +184,6 @@ const NewClaim = () => {
                                   <p className="text-sm font-medium">{file.name}</p>
                                   <p className="text-xs text-muted-foreground">
                                     {file.status === "uploading" && "Uploading..."}
-                                    {file.status === "scanning" && "AI is extracting data..."}
                                     {file.status === "complete" && "Analysis verified"}
                                   </p>
                                 </div>
@@ -188,10 +196,10 @@ const NewClaim = () => {
                             {/* Show Extracted Data inside the card when complete */}
                             {file.status === "complete" && file.extractedData && (
                               <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-white/50 p-2 rounded border border-success/20">
-                                <div><span className="text-muted-foreground">Hospital:</span> {file.extractedData.hospital}</div>
+                                {/* <div><span className="text-muted-foreground">Hospital:</span> {file.extractedData.hospital}</div>
                                 <div><span className="text-muted-foreground">Diagnosis:</span> {file.extractedData.diagnosis}</div>
                                 <div><span className="text-muted-foreground">Date:</span> {file.extractedData.date}</div>
-                                <div><span className="text-muted-foreground">Amount:</span> {file.extractedData.amount}</div>
+                                <div><span className="text-muted-foreground">Amount:</span> {file.extractedData.amount}</div> */}
                               </div>
                             )}
                           </HealthcareCard>

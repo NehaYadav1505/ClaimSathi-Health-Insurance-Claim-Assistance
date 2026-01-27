@@ -127,6 +127,7 @@ router.post(
       res.status(201).json({
         success: true,
         message: "Claim document analyzed successfully",
+        claimId: newClaim._id,
         claimSummary: aiResult,
       });
     } catch (error) {

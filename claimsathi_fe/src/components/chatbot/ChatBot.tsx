@@ -9,6 +9,7 @@ interface Message {
   text: string;
   isBot: boolean;
   timestamp: Date;
+  isLoading?: boolean;
 }
 
 const languages = [
@@ -22,7 +23,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Hello! I'm your HealthClaim Assistant. How can I help you today? I can explain claim terms, guide you through the process, or answer questions about your coverage.",
+      text: "Hello! I'm your ClaimSathi Assistant. How can I help you today?",
       isBot: true,
       timestamp: new Date(),
     },
@@ -30,13 +31,36 @@ const ChatBot = () => {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [language, setLanguage] = useState("en");
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  // Toggle speech
+  const toggleSpeakMessage = (id: string, text: string) => {
+    if (!("speechSynthesis" in window)) return;
+
+    if (speakingId === id) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language === "en" ? "en-US" : language === "hi" ? "hi-IN" : "hi-IN";
+    utterance.onend = () => setSpeakingId(null);
+
+    window.speechSynthesis.speak(utterance);
+    setSpeakingId(id);
+  };
+
+  const toggleVoice = () => setIsListening(!isListening);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -45,39 +69,75 @@ const ChatBot = () => {
       isBot: false,
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponses: Record<string, string> = {
-        en: "Thank you for your question. I'm here to help you understand your health insurance claim process. Could you please provide more details about your concern?",
-        hi: "आपके प्रश्न के लिए धन्यवाद। मैं आपकी स्वास्थ्य बीमा दावा प्रक्रिया को समझने में मदद करने के लिए यहाँ हूँ। कृपया अपनी चिंता के बारे में अधिक विवरण दें।",
-        bh: "रउआ सवाल खातिर धन्यवाद। हम रउआ के स्वास्थ्य बीमा दावा प्रक्रिया समझे में मदद करे खातिर इहाँ बानी। कृपया अपना समस्या के बारे में आउर बतावल जाव।",
-      };
+    // Typing indicator
+    const typingId = "typing";
+    setMessages((prev) => [
+      ...prev,
+      { id: typingId, text: "ClaimSathi is typing...", isBot: true, timestamp: new Date(), isLoading: true },
+    ]);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, language }),
+      });
+
+      const data = await response.json();
+
+      // Remove typing indicator
+      setMessages((prev) => prev.filter((m) => m.id !== typingId));
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: botResponses[language],
+        text: data.reply,
+        isBot: true,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => prev.filter((m) => m.id !== typingId));
+
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, the chatbot service is unavailable.",
         isBot: true,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
-  };
-
-  const toggleVoice = () => {
-    setIsListening(!isListening);
-    // Voice recognition would be implemented here
-  };
-
-  const speakMessage = (text: string) => {
-    if ("speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === "en" ? "en-US" : language === "hi" ? "hi-IN" : "hi-IN";
-      window.speechSynthesis.speak(utterance);
     }
+  };
+
+  // Render stylish nested bot messages
+  const renderBotText = (text: string) => {
+    const lines = text.split("\n").filter(Boolean);
+
+    return (
+      <div className="space-y-1">
+        {lines.map((line, index) => {
+          // Check for sub-step (colon indicates sub-step)
+          const [main, sub] = line.split(":");
+          if (sub) {
+            return (
+              <div key={index} className="pl-4">
+                <p className="font-semibold text-sm text-blue-800">{main.trim()}:</p>
+                <p className="text-sm pl-4 text-gray-700">{sub.trim()}</p>
+              </div>
+            );
+          }
+          return (
+            <p key={index} className="text-sm font-medium text-gray-900">
+              • {line.trim()}
+            </p>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -92,7 +152,7 @@ const ChatBot = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-elevated flex items-center justify-center"
+            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center"
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -116,12 +176,11 @@ const ChatBot = () => {
                     <MessageCircle className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-primary-foreground font-semibold">HealthClaim Assistant</h3>
+                    <h3 className="text-primary-foreground font-semibold">ClaimSathi Assistant</h3>
                     <p className="text-primary-foreground/70 text-xs">Always here to help</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Language Selector */}
                   <div className="relative">
                     <select
                       value={language}
@@ -146,7 +205,7 @@ const ChatBot = () => {
               </div>
 
               {/* Messages */}
-              <div className="h-[320px] overflow-y-auto p-4 space-y-4 bg-background">
+              <div className="h-[320px] overflow-y-auto p-4 space-y-3 bg-background">
                 {messages.map((message) => (
                   <motion.div
                     key={message.id}
@@ -155,20 +214,23 @@ const ChatBot = () => {
                     className={`flex ${message.isBot ? "justify-start" : "justify-end"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      className={`max-w-[80%] p-4 rounded-2xl shadow-md ${
                         message.isBot
-                          ? "bg-card text-card-foreground rounded-tl-sm"
-                          : "bg-primary text-primary-foreground rounded-tr-sm"
+                          ? message.isLoading
+                            ? "bg-gray-100 text-gray-400 italic"
+                            : "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900 rounded-tl-sm"
+                          : "bg-primary text-white rounded-tr-sm"
                       }`}
                     >
-                      <p className="text-sm">{message.text}</p>
-                      {message.isBot && (
+                      {message.isBot ? renderBotText(message.text) : message.text}
+
+                      {message.isBot && !message.isLoading && (
                         <button
-                          onClick={() => speakMessage(message.text)}
-                          className="mt-2 flex items-center gap-1 text-xs opacity-60 hover:opacity-100 transition-opacity"
+                          onClick={() => toggleSpeakMessage(message.id, message.text)}
+                          className="mt-2 flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-semibold"
                         >
                           <Volume2 className="w-3 h-3" />
-                          Listen
+                          {speakingId === message.id ? "Stop" : "Listen"}
                         </button>
                       )}
                     </div>
@@ -198,11 +260,7 @@ const ChatBot = () => {
                     placeholder="Type your message..."
                     className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <HealthcareButton
-                    onClick={handleSend}
-                    size="icon"
-                    disabled={!input.trim()}
-                  >
+                  <HealthcareButton onClick={handleSend} size="icon" disabled={!input.trim()}>
                     <Send className="w-4 h-4" />
                   </HealthcareButton>
                 </div>
