@@ -10,7 +10,7 @@ const geminiModel = new ChatGoogleGenerativeAI({
 
 const embeddingModel = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GEMINI_API_KEY,
-  model: "text-embedding-004",
+  model: "gemini-embedding-001",
 });
 
 module.exports = {

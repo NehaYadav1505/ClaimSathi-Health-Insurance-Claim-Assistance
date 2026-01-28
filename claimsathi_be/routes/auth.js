@@ -96,10 +96,10 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id },
-      "JWT_SECRET_KEY",
-      { expiresIn: "1d" }
-    );
+  { userId: user._id },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" }
+);
 
     res.json({
       success: true,
@@ -112,6 +112,9 @@ router.post("/login", async (req, res) => {
         mobile: user.mobile,
       },
     });
+
+   
+ 
   } catch (error) {
     res.status(400).json({
       success: false,

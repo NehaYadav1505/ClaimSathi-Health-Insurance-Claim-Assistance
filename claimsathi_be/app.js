@@ -20,11 +20,11 @@ const dossierRoute = require("./routes/dossier");
 
 var app = express();
 app.use(cors());
-const uri =
-  "mongodb+srv://nehadgp03_db_user:agentic@cluster0.jnrbgyz.mongodb.net/claimsathi_db";
+// const uri =
+//   "mongodb+srv://nehadgp03_db_user:agentic@cluster0.jnrbgyz.mongodb.net/claimsathi_db";
 
 async function connectDB() {
-  mongoose.connect(uri, {});
+  mongoose.connect(process.env.MONGODB_URI, {});
   try {
     // await mongoose.connect(uri, {
     //   // useNewUrlParser: true,

@@ -1,18 +1,38 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import { HealthcareButton } from "@/components/ui/healthcare-button";
+import { useNavigate } from "react-router-dom";
+
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+    const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
-  const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/how-it-works", label: "How It Works" },
-    { href: "/dashboard", label: "Dashboard" },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (token && storedUser) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(storedUser));
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  }, []);
+
+
+ const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/how-it-works", label: "How It Works" },
+  ...(isLoggedIn ? [{ href: "/dashboard", label: "Dashboard" }] : []),
+];
+
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -51,16 +71,41 @@ const Header = () => {
           </nav>
 
           {/* Auth Buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <HealthcareButton variant="ghost" size="sm">
-                Login
-              </HealthcareButton>
-            </Link>
-            <Link to="/register">
-              <HealthcareButton size="sm">Get Started</HealthcareButton>
-            </Link>
-          </div>
+         <div className="hidden md:flex items-center gap-3">
+  {isLoggedIn ? (
+    <div className="flex items-center gap-3">
+      {/* Avatar Circle */}
+      <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold cursor-pointer">
+        {user?.name?.charAt(0).toUpperCase()}
+      </div>
+
+      <HealthcareButton
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+          window.location.reload();
+        }}
+      >
+        Logout
+      </HealthcareButton>
+    </div>
+  ) : (
+    <>
+      <Link to="/login">
+        <HealthcareButton variant="ghost" size="sm">
+          Login
+        </HealthcareButton>
+      </Link>
+      <Link to="/register">
+        <HealthcareButton size="sm">Get Started</HealthcareButton>
+      </Link>
+    </>
+  )}
+</div>
+
 
           {/* Mobile Menu Button */}
           <button
