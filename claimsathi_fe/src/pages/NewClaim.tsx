@@ -140,7 +140,7 @@ const NewClaim = () => {
                     Medical Documents
                   </HealthcareCardTitle>
                   <HealthcareCardDescription>
-                    Upload your prescription, hospital bills, or lab reports (PDF)
+                    Upload your prescription, hospital bills, lab reports & Policy (PDF)
                   </HealthcareCardDescription>
                 </HealthcareCardHeader>
 
@@ -150,7 +150,7 @@ const NewClaim = () => {
                     <label className="group relative border-2 border-dashed border-muted-foreground/20 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5 hover:border-primary/50 transition-all">
                       <input
                         type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
+                        accept=".pdf"
                         onChange={handleFileChange}
                         className="sr-only"
                       />
@@ -158,7 +158,7 @@ const NewClaim = () => {
                         <FileText className="w-7 h-7 text-primary" />
                       </div>
                       <p className="text-base font-semibold">Click to upload document</p>
-                      <p className="text-xs text-muted-foreground mt-1">Supports PDF, JPG, PNG</p>
+                      <p className="text-xs text-muted-foreground mt-1">Supports PDF</p>
                     </label>
 
                     {/* List of Uploaded Files */}

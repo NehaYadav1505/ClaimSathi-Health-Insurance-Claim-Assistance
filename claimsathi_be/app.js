@@ -16,7 +16,7 @@ var authRouter = require("./routes/auth");//for authentication
 var claimDocRouter = require("./routes/document");//document analysis
 const claimRouter = require("./routes/claim");//calling agents
 var chatbotRouter = require("./routes/chatbot");
-const dossierRoute = require("./routes/dossier");
+
 
 var app = express();
 app.use(cors());
@@ -59,7 +59,7 @@ app.use("/auth", authRouter);
 app.use("/claim", claimDocRouter);
 app.use("/claim", claimRouter);
 app.use("/api/chatbot", chatbotRouter);
-app.use("/", dossierRoute);
+
 
 
 // catch 404 and forward to error handler

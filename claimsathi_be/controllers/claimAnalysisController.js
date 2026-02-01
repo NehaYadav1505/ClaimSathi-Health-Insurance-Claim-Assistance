@@ -82,6 +82,7 @@ const claimData = {
     return res.status(200).json({
       success: true,
       claimId: claim._id,
+      claimSummary: aiAnalysis,
       verification: verificationResult,
       policyRules,
       eligibility: eligibilityResult,

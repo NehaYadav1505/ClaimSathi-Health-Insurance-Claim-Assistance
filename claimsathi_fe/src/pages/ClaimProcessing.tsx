@@ -44,9 +44,9 @@ const ClaimProcessing = () => {
       message: "Waiting to start..."
     },
     {
-      id: "hospital",
-      name: "Hospital Validator",
-      description: "Verifying network status & hospital credentials",
+      id: "deduction",
+      name: "Deduction Agent",
+      description: "Identifying applicable deductions",
       icon: Building2,
       status: "pending",
       message: "Waiting to start..."
@@ -76,12 +76,12 @@ const ClaimProcessing = () => {
       "Verifying co-payment terms...",
       "Eligibility confirmed ✓"
     ],
-    hospital: [
-      "Looking up hospital in network database...",
-      "Verifying hospital registration...",
-      "Checking preferred provider status...",
-      "Network hospital verified ✓"
-    ],
+    deduction: [
+  "Analyzing policy terms and conditions...",
+  "Identifying applicable deductions...",
+  "Calculating non-payable amounts...",
+  "Deduction analysis completed ✓"
+],
     reasoning: [
       "Analyzing all agent findings...",
       "Calculating reimbursement amount...",
